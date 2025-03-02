@@ -25,73 +25,76 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
     <script>
-        // Tu configuración de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyDIjz1xlwVQBFapSWY7_XTCxYVP7MeLjc4",
-            authDomain: "pump-and-dump-web.firebaseapp.com",
-            projectId: "pump-and-dump-web",
-            storageBucket: "pump-and-dump-web.firebasestorage.app",
-            messagingSenderId: "51686849899",
-            appId: "1:51686849899:web:9595e37f0b15944d1e202e",
-            measurementId: "G-JQXH36TS06",
-            databaseURL: "https://pump-and-dump-web-default-rtdb.firebaseio.com" // Añadí esto explícitamente
-        };
+        console.log("Script cargado");
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDIjz1xlwVQBFapSWY7_XTCxYVP7MeLjc4",
+                authDomain: "pump-and-dump-web.firebaseapp.com",
+                projectId: "pump-and-dump-web",
+                storageBucket: "pump-and-dump-web.firebasestorage.app",
+                messagingSenderId: "51686849899",
+                appId: "1:51686849899:web:9595e37f0b15944d1e202e",
+                measurementId: "G-JQXH36TS06",
+                databaseURL: "https://pump-and-dump-web-default-rtdb.firebaseio.com"
+            };
 
-        // Inicializa Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+            console.log("Inicializando Firebase");
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+            console.log("Firebase inicializado");
 
-        // Referencias a la base de datos
-        const votesRef = db.ref("votes");
-        const timerRef = db.ref("timer");
+            const votesRef = db.ref("votes");
+            const timerRef = db.ref("timer");
 
-        // Función para votar
-        function vote(choice) {
-            votesRef.child(choice).transaction((currentVotes) => {
-                return (currentVotes || 0) + 1;
-            });
-            alert(`Votaste por ${choice}!`);
-        }
-
-        // Actualizar temporizador
-        timerRef.on("value", (snapshot) => {
-            const timeLeft = snapshot.val() || 60;
-            document.getElementById("timer").innerText = `Tiempo restante: ${timeLeft}s`;
-            if (timeLeft <= 0) {
-                showResults();
-                resetVoting();
+            function vote(choice) {
+                console.log("Voto registrado para:", choice);
+                votesRef.child(choice).transaction((currentVotes) => {
+                    return (currentVotes || 0) + 1;
+                });
+                alert(`Votaste por ${choice}!`);
             }
-        });
 
-        // Mostrar resultados en tiempo real
-        votesRef.on("value", (snapshot) => {
-            const data = snapshot.val() || { pump: 0, dump: 0 };
-            const pumpVotes = data.pump || 0;
-            const dumpVotes = data.dump || 0;
-            const total = pumpVotes + dumpVotes;
-            const pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
-            const dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
-            document.getElementById("result").innerText = 
-                `Resultados en tiempo real: Pump ${pumpPercent}% (${pumpVotes}), Dump ${dumpPercent}% (${dumpVotes})`;
-        });
-
-        // Sincronizar y reiniciar cada minuto
-        setInterval(() => {
-            timerRef.transaction((currentTime) => {
-                const newTime = (currentTime || 60) - 1;
-                if (newTime <= 0) {
-                    return 60; // Reinicia a 60s
+            timerRef.on("value", (snapshot) => {
+                const timeLeft = snapshot.val() || 60;
+                console.log("Tiempo actualizado:", timeLeft);
+                document.getElementById("timer").innerText = `Tiempo restante: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    showResults();
+                    resetVoting();
                 }
-                return newTime;
             });
-        }, 1000);
 
-        function resetVoting() {
-            votesRef.set({ pump: 0, dump: 0 });
-        }
+            votesRef.on("value", (snapshot) => {
+                const data = snapshot.val() || { pump: 0, dump: 0 };
+                console.log("Votos actualizados:", data);
+                const pumpVotes = data.pump || 0;
+                const dumpVotes = data.dump || 0;
+                const total = pumpVotes + dumpVotes;
+                const pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
+                const dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
+                document.getElementById("result").innerText = 
+                    `Resultados en tiempo real: Pump ${pumpPercent}% (${pumpVotes}), Dump ${dumpPercent}% (${dumpVotes})`;
+            });
 
-        function showResults() {
-            // Los resultados ya se actualizan en tiempo real con votesRef.on
+            setInterval(() => {
+                timerRef.transaction((currentTime) => {
+                    const newTime = (currentTime || 60) - 1;
+                    console.log("Temporizador actualizado a:", newTime);
+                    if (newTime <= 0) {
+                        return 60;
+                    }
+                    return newTime;
+                });
+            }, 1000);
+
+            function resetVoting() {
+                votesRef.set({ pump: 0, dump: 0 });
+                console.log("Votos reiniciados");
+            }
+
+            function showResults() {}
+        } catch (error) {
+            console.error("Error en el script:", error);
         }
     </script>
 </body>
