@@ -20,38 +20,78 @@
     <div id="timer">Tiempo restante: 60s</div>
     <div id="result">Resultados del último minuto: Esperando votos...</div>
 
-    <script>
-        let pumpVotes = 0;
-        let dumpVotes = 0;
-        let timeLeft = 60;
+    <!-- Firebase SDK via CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
-        setInterval(() => {
-            timeLeft--;
+    <script>
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIjz1xlwVQBFapSWY7_XTCxYVP7MeLjc4",
+            authDomain: "pump-and-dump-web.firebaseapp.com",
+            projectId: "pump-and-dump-web",
+            storageBucket: "pump-and-dump-web.firebasestorage.app",
+            messagingSenderId: "51686849899",
+            appId: "1:51686849899:web:9595e37f0b15944d1e202e",
+            measurementId: "G-JQXH36TS06",
+            databaseURL: "https://pump-and-dump-web-default-rtdb.firebaseio.com" // Añadí esto explícitamente
+        };
+
+        // Inicializa Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Referencias a la base de datos
+        const votesRef = db.ref("votes");
+        const timerRef = db.ref("timer");
+
+        // Función para votar
+        function vote(choice) {
+            votesRef.child(choice).transaction((currentVotes) => {
+                return (currentVotes || 0) + 1;
+            });
+            alert(`Votaste por ${choice}!`);
+        }
+
+        // Actualizar temporizador
+        timerRef.on("value", (snapshot) => {
+            const timeLeft = snapshot.val() || 60;
             document.getElementById("timer").innerText = `Tiempo restante: ${timeLeft}s`;
             if (timeLeft <= 0) {
                 showResults();
                 resetVoting();
             }
+        });
+
+        // Mostrar resultados en tiempo real
+        votesRef.on("value", (snapshot) => {
+            const data = snapshot.val() || { pump: 0, dump: 0 };
+            const pumpVotes = data.pump || 0;
+            const dumpVotes = data.dump || 0;
+            const total = pumpVotes + dumpVotes;
+            const pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
+            const dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
+            document.getElementById("result").innerText = 
+                `Resultados en tiempo real: Pump ${pumpPercent}% (${pumpVotes}), Dump ${dumpPercent}% (${dumpVotes})`;
+        });
+
+        // Sincronizar y reiniciar cada minuto
+        setInterval(() => {
+            timerRef.transaction((currentTime) => {
+                const newTime = (currentTime || 60) - 1;
+                if (newTime <= 0) {
+                    return 60; // Reinicia a 60s
+                }
+                return newTime;
+            });
         }, 1000);
 
-        function vote(choice) {
-            if (choice === "pump") pumpVotes++;
-            else dumpVotes++;
-            alert(`Votaste por ${choice}!`);
+        function resetVoting() {
+            votesRef.set({ pump: 0, dump: 0 });
         }
 
         function showResults() {
-            let total = pumpVotes + dumpVotes;
-            let pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
-            let dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
-            document.getElementById("result").innerText = 
-                `Resultados del último minuto: Pump ${pumpPercent}%, Dump ${dumpPercent}%`;
-        }
-
-        function resetVoting() {
-            pumpVotes = 0;
-            dumpVotes = 0;
-            timeLeft = 60;
+            // Los resultados ya se actualizan en tiempo real con votesRef.on
         }
     </script>
 </body>
