@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pump and Dump Voting</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        .button { padding: 20px; margin: 10px; font-size: 20px; cursor: pointer; }
+        #pump { background-color: #00cc00; color: white; }
+        #dump { background-color: #ff3333; color: white; }
+        #result { margin-top: 20px; font-size: 18px; }
+        #timer { font-size: 24px; }
+    </style>
+</head>
+<body>
+    <h1>Pump and Dump</h1>
+    <p>Vota cada minuto: ¿Sube o baja?</p>
+    <button id="pump" class="button" onclick="vote('pump')">Pump</button>
+    <button id="dump" class="button" onclick="vote('dump')">Dump</button>
+    <div id="timer">Tiempo restante: 60s</div>
+    <div id="result">Resultados del último minuto: Esperando votos...</div>
+
+    <script>
+        let pumpVotes = 0;
+        let dumpVotes = 0;
+        let timeLeft = 60;
+
+        setInterval(() => {
+            timeLeft--;
+            document.getElementById("timer").innerText = `Tiempo restante: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                showResults();
+                resetVoting();
+            }
+        }, 1000);
+
+        function vote(choice) {
+            if (choice === "pump") pumpVotes++;
+            else dumpVotes++;
+            alert(`Votaste por ${choice}!`);
+        }
+
+        function showResults() {
+            let total = pumpVotes + dumpVotes;
+            let pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
+            let dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
+            document.getElementById("result").innerText = 
+                `Resultados del último minuto: Pump ${pumpPercent}%, Dump ${dumpPercent}%`;
+        }
+
+        function resetVoting() {
+            pumpVotes = 0;
+            dumpVotes = 0;
+            timeLeft = 60;
+        }
+    </script>
+</body>
+</html>
