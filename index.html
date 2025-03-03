@@ -17,7 +17,7 @@
     </style>
 </head>
 <body>
-    <!-- Versión 2.3: Forzar temporizador a llegar a 0 -->
+    <!-- Versión 2.5: Asegurar detección de timer a 0 -->
     <h1>Pump and Dump</h1>
     <p>Vote every minute: Up or down?</p>
     <button id="pump" class="button" onclick="vote('pump')">Pump</button>
@@ -34,14 +34,14 @@
             </tr>
         </table>
     </div>
-    <footer>Version 2.3</footer>
+    <footer>Version 2.5</footer>
 
     <!-- Firebase SDK versión 7.24.0 -->
     <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-database.js"></script>
 
     <script>
-        console.log("Script loaded - Version 2.3");
+        console.log("Script loaded - Version 2.5");
         try {
             const firebaseConfig = {
                 apiKey: "AIzaSyDIjz1xlwVQBFapSWY7_XTCxYVP7MeLjc4",
@@ -137,7 +137,7 @@
                 });
             }
 
-            // Inicializar el temporizador si no existe
+            // Inicializar temporizador si no existe
             timerRef.once("value", (snapshot) => {
                 if (!snapshot.exists()) {
                     console.log("Timer not found, setting to 60");
@@ -147,22 +147,15 @@
 
             setInterval(() => {
                 timerRef.once("value", (snapshot) => {
-                    let currentTime = snapshot.val();
-                    if (currentTime === null || currentTime === undefined) {
-                        console.log("Timer null or undefined, forcing to 60");
-                        currentTime = 60;
-                    }
+                    let currentTime = snapshot.val() || 60;
+                    console.log("Timer current value:", currentTime);
                     const newTime = currentTime - 1;
-                    console.log("Attempting to update timer from", currentTime, "to", newTime);
+                    console.log("Attempting to set timer to:", newTime);
                     timerRef.set(newTime, (error) => {
                         if (error) {
-                            console.error("Failed to set timer:", error);
+                            console.error("Error setting timer:", error);
                         } else {
-                            console.log("Timer successfully set to:", newTime);
-                            if (newTime <= 0) {
-                                console.log("Resetting timer to 60");
-                                timerRef.set(60);
-                            }
+                            console.log("Timer set to:", newTime);
                         }
                     });
                 });
@@ -172,6 +165,10 @@
                 votesRef.set({ pump: 0, dump: 0 }, (error) => {
                     if (error) console.error("Error resetting votes:", error);
                     else console.log("Votes reset successfully");
+                });
+                timerRef.set(60, (error) => {
+                    if (error) console.error("Error resetting timer to 60:", error);
+                    else console.log("Timer reset to 60 in resetVoting");
                 });
                 localStorage.removeItem(hasVotedKey);
                 localStorage.removeItem("voteMinute");
