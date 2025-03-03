@@ -46,19 +46,41 @@
             const votesRef = db.ref("votes");
             const timerRef = db.ref("timer");
 
-            let hasVotedThisMinute = false;
+            // Usar localStorage para rastrear si el usuario ya votó y el minuto actual
+            let currentMinute = null;
+            const hasVotedKey = "hasVotedThisMinute";
+            let lastResults = "Results will show after the minute ends...";
+
+            // Cargar estado inicial desde localStorage
+            if (localStorage.getItem(hasVotedKey)) {
+                const storedMinute = localStorage.getItem("voteMinute");
+                if (storedMinute) currentMinute = parseInt(storedMinute);
+            }
 
             function vote(choice) {
-                if (hasVotedThisMinute) {
+                const now = Date.now();
+                const minuteNow = Math.floor(now / 60000); // Minuto actual en epoch
+
+                // Si el minuto cambió desde el último voto, reinicia el estado
+                if (currentMinute !== null && minuteNow !== currentMinute) {
+                    localStorage.removeItem(hasVotedKey);
+                    localStorage.removeItem("voteMinute");
+                    currentMinute = null;
+                }
+
+                if (localStorage.getItem(hasVotedKey)) {
                     alert("You can only vote once per minute!");
                     return;
                 }
+
                 console.log("Vote registered for:", choice);
                 votesRef.child(choice).transaction((currentVotes) => {
                     return (currentVotes || 0) + 1;
                 });
                 alert(`You voted for ${choice}!`);
-                hasVotedThisMinute = true;
+                localStorage.setItem(hasVotedKey, "true");
+                localStorage.setItem("voteMinute", minuteNow);
+                currentMinute = minuteNow;
             }
 
             timerRef.on("value", (snapshot) => {
@@ -69,7 +91,6 @@
                     console.log("Minute ended, showing results");
                     showResults();
                     resetVoting();
-                    hasVotedThisMinute = false;
                 }
             });
 
@@ -83,8 +104,8 @@
                     const total = pumpVotes + dumpVotes;
                     const pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
                     const dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
-                    document.getElementById("result").innerText = 
-                        `Results of last minute: Pump ${pumpPercent}% (${pumpVotes}), Dump ${dumpPercent}% (${dumpVotes})`;
+                    lastResults = `Results of last minute: Pump ${pumpPercent}% (${pumpVotes}), Dump ${dumpPercent}% (${dumpVotes})`;
+                    document.getElementById("result").innerText = lastResults;
                 }, (error) => {
                     console.error("Error fetching votes:", error);
                 });
@@ -109,8 +130,14 @@
                         console.log("Votes reset successfully");
                     }
                 });
-                document.getElementById("result").innerText = "Results will show after the minute ends...";
+                // No reiniciamos el texto de los resultados, dejamos los del minuto anterior
+                localStorage.removeItem(hasVotedKey); // Permitir votar en el nuevo minuto
+                localStorage.removeItem("voteMinute");
+                currentMinute = null;
             }
+
+            // Mostrar los últimos resultados al cargar la página
+            document.getElementById("result").innerText = lastResults;
         } catch (error) {
             console.error("Error in script:", error);
         }
