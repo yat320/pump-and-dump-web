@@ -17,7 +17,7 @@
     </style>
 </head>
 <body>
-    <!-- Versión 2.1: Tabla permanente con resultados acumulados y depuración mejorada -->
+    <!-- Versión 2.2: Corregir temporizador para llegar a 0 -->
     <h1>Pump and Dump</h1>
     <p>Vote every minute: Up or down?</p>
     <button id="pump" class="button" onclick="vote('pump')">Pump</button>
@@ -34,14 +34,14 @@
             </tr>
         </table>
     </div>
-    <footer>Version 2.1</footer>
+    <footer>Version 2.2</footer>
 
     <!-- Firebase SDK versión 7.24.0 -->
     <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-database.js"></script>
 
     <script>
-        console.log("Script loaded - Version 2.1");
+        console.log("Script loaded - Version 2.2");
         try {
             const firebaseConfig = {
                 apiKey: "AIzaSyDIjz1xlwVQBFapSWY7_XTCxYVP7MeLjc4",
@@ -104,7 +104,7 @@
 
             timerRef.on("value", (snapshot) => {
                 const timeLeft = snapshot.val() || 60;
-                console.log("Time updated:", timeLeft);
+                console.log("Timer value from Firebase:", timeLeft);
                 document.getElementById("timer").innerText = `Time remaining: ${timeLeft}s`;
                 if (timeLeft <= 0) {
                     console.log("Minute ended, calling showResults");
@@ -140,21 +140,30 @@
                 });
             }
 
+            // Inicializar el temporizador si no existe
+            timerRef.once("value", (snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log("Timer not found, initializing to 60");
+                    timerRef.set(60);
+                }
+            });
+
             setInterval(() => {
                 timerRef.once("value", (snapshot) => {
                     const currentTime = snapshot.val() || 60;
                     const newTime = currentTime - 1;
                     console.log("Timer updating from", currentTime, "to", newTime);
-                    if (newTime <= 0) {
-                        timerRef.set(60, (error) => {
-                            if (error) console.error("Error resetting timer:", error);
-                            else console.log("Timer reset to 60");
-                        });
-                    } else {
-                        timerRef.set(newTime, (error) => {
-                            if (error) console.error("Error setting timer:", error);
-                        });
-                    }
+                    timerRef.set(newTime, (error) => {
+                        if (error) {
+                            console.error("Error setting timer:", error);
+                        } else {
+                            console.log("Timer set to:", newTime);
+                            if (newTime <= 0) {
+                                console.log("Timer reached 0, resetting to 60");
+                                timerRef.set(60);
+                            }
+                        }
+                    });
                 });
             }, 1000);
 
