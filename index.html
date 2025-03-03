@@ -10,6 +10,9 @@
         #dump { background-color: #ff3333; color: white; }
         #result { margin-top: 20px; font-size: 18px; }
         #timer { font-size: 24px; }
+        table { margin: 20px auto; border-collapse: collapse; }
+        th, td { padding: 8px; border: 1px solid #000; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
@@ -104,21 +107,42 @@
                     const total = pumpVotes + dumpVotes;
                     const pumpPercent = total > 0 ? ((pumpVotes / total) * 100).toFixed(2) : 0;
                     const dumpPercent = total > 0 ? ((dumpVotes / total) * 100).toFixed(2) : 0;
-                    lastResults = `Results of last minute: Pump ${pumpPercent}% (${pumpVotes}), Dump ${dumpPercent}% (${dumpVotes})`;
-                    document.getElementById("result").innerText = lastResults;
+                    const tableHTML = `
+                        <table>
+                            <tr>
+                                <th>Choice</th>
+                                <th>Votes</th>
+                                <th>Percentage</th>
+                            </tr>
+                            <tr>
+                                <td>Pump</td>
+                                <td>${pumpVotes}</td>
+                                <td>${pumpPercent}%</td>
+                            </tr>
+                            <tr>
+                                <td>Dump</td>
+                                <td>${dumpVotes}</td>
+                                <td>${dumpPercent}%</td>
+                            </tr>
+                        </table>
+                    `;
+                    lastResults = tableHTML;
+                    document.getElementById("result").innerHTML = lastResults;
                 }, (error) => {
                     console.error("Error fetching votes:", error);
                 });
             }
 
             setInterval(() => {
-                timerRef.transaction((currentTime) => {
-                    const newTime = (currentTime || 60) - 1;
-                    console.log("Timer updated to:", newTime);
+                timerRef.once("value", (snapshot) => {
+                    const currentTime = snapshot.val() || 60;
+                    const newTime = currentTime - 1;
                     if (newTime <= 0) {
-                        return 60;
+                        timerRef.set(60);
+                    } else {
+                        timerRef.set(newTime);
                     }
-                    return newTime;
+                    console.log("Timer updated to:", newTime);
                 });
             }, 1000);
 
@@ -137,7 +161,7 @@
             }
 
             // Mostrar los últimos resultados al cargar la página
-            document.getElementById("result").innerText = lastResults;
+            document.getElementById("result").innerHTML = lastResults;
         } catch (error) {
             console.error("Error in script:", error);
         }
