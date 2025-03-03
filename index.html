@@ -17,7 +17,7 @@
     </style>
 </head>
 <body>
-    <!-- Versión 2.2: Corregir temporizador para llegar a 0 -->
+    <!-- Versión 2.3: Forzar temporizador a llegar a 0 -->
     <h1>Pump and Dump</h1>
     <p>Vote every minute: Up or down?</p>
     <button id="pump" class="button" onclick="vote('pump')">Pump</button>
@@ -34,14 +34,14 @@
             </tr>
         </table>
     </div>
-    <footer>Version 2.2</footer>
+    <footer>Version 2.3</footer>
 
     <!-- Firebase SDK versión 7.24.0 -->
     <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.24.0/firebase-database.js"></script>
 
     <script>
-        console.log("Script loaded - Version 2.2");
+        console.log("Script loaded - Version 2.3");
         try {
             const firebaseConfig = {
                 apiKey: "AIzaSyDIjz1xlwVQBFapSWY7_XTCxYVP7MeLjc4",
@@ -90,11 +90,8 @@
                 votesRef.child(choice).transaction((currentVotes) => {
                     return (currentVotes || 0) + 1;
                 }, (error, committed) => {
-                    if (error) {
-                        console.error("Error committing vote:", error);
-                    } else if (committed) {
-                        console.log("Vote committed successfully");
-                    }
+                    if (error) console.error("Vote error:", error);
+                    else if (committed) console.log("Vote committed");
                 });
                 alert(`You voted for ${choice}!`);
                 localStorage.setItem(hasVotedKey, "true");
@@ -104,10 +101,10 @@
 
             timerRef.on("value", (snapshot) => {
                 const timeLeft = snapshot.val() || 60;
-                console.log("Timer value from Firebase:", timeLeft);
+                console.log("Timer read from Firebase:", timeLeft);
                 document.getElementById("timer").innerText = `Time remaining: ${timeLeft}s`;
                 if (timeLeft <= 0) {
-                    console.log("Minute ended, calling showResults");
+                    console.log("Timer reached 0, calling showResults");
                     showResults();
                     resetVoting();
                 }
@@ -134,7 +131,7 @@
                         <td>${dumpVotes}</td>
                         <td>${dumpPercent}%</td>
                     `;
-                    console.log("Row added to table:", newRow.innerHTML);
+                    console.log("Row added:", newRow.innerHTML);
                 }, (error) => {
                     console.error("Error fetching votes:", error);
                 });
@@ -143,23 +140,27 @@
             // Inicializar el temporizador si no existe
             timerRef.once("value", (snapshot) => {
                 if (!snapshot.exists()) {
-                    console.log("Timer not found, initializing to 60");
+                    console.log("Timer not found, setting to 60");
                     timerRef.set(60);
                 }
             });
 
             setInterval(() => {
                 timerRef.once("value", (snapshot) => {
-                    const currentTime = snapshot.val() || 60;
+                    let currentTime = snapshot.val();
+                    if (currentTime === null || currentTime === undefined) {
+                        console.log("Timer null or undefined, forcing to 60");
+                        currentTime = 60;
+                    }
                     const newTime = currentTime - 1;
-                    console.log("Timer updating from", currentTime, "to", newTime);
+                    console.log("Attempting to update timer from", currentTime, "to", newTime);
                     timerRef.set(newTime, (error) => {
                         if (error) {
-                            console.error("Error setting timer:", error);
+                            console.error("Failed to set timer:", error);
                         } else {
-                            console.log("Timer set to:", newTime);
+                            console.log("Timer successfully set to:", newTime);
                             if (newTime <= 0) {
-                                console.log("Timer reached 0, resetting to 60");
+                                console.log("Resetting timer to 60");
                                 timerRef.set(60);
                             }
                         }
@@ -169,11 +170,8 @@
 
             function resetVoting() {
                 votesRef.set({ pump: 0, dump: 0 }, (error) => {
-                    if (error) {
-                        console.error("Error resetting votes:", error);
-                    } else {
-                        console.log("Votes reset successfully");
-                    }
+                    if (error) console.error("Error resetting votes:", error);
+                    else console.log("Votes reset successfully");
                 });
                 localStorage.removeItem(hasVotedKey);
                 localStorage.removeItem("voteMinute");
